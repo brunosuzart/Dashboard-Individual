@@ -1,6 +1,8 @@
 # dashboards
 #The file Modelo.xlsm is a spreadsheet model that I've create to solve a specific problem about knowledge of commercial information. This model is used to fullfill the entire broker's needs about information.
+
 #The file functions, is a module from Access VBA, that explain and show how you build individuals dashboard for specific persons (in my case is Insurance brokers) in an automated process mirrored in a sample file as I sad above.
+
 #It's important to name specific ranges in excel: 
 
 Example: 
