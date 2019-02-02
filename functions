@@ -1,0 +1,158 @@
+''This function is responsible to get a contact list with emails
+Public Function ListaDashConsultor()
+    
+    ''Hide some warnings // Esconde alguns avisos do access
+    DoCmd.SetWarnings False
+    
+    Dim i As Integer ''This var will be used in a loop condition
+    Dim db_email As dao.Database ''Create a database var (It's necessary to specify which database you will use, your current database or another database located in a another path)
+    Dim sql_email As String ''Sql parameters
+    Dim rs_email As dao.Recordset ''Creating a recordset to run a sql command in an specific database previously defined as db_email
+    Dim qtd_email As Double ''Get how many peoplo is there in your contact list
+    
+    ''Your SQL criteria to get you list of contacts
+    sql_email = "SELECT nome,email,status FROM tbCadastros
+    WHERE status = 'Ativo' and email Is Not Null
+    
+    ''Sepecifying my currentdb, it could be another database, example if you have a backend process 
+    Set db_email = CurrentDb
+    Set rs_email = db_email.OpenRecordset(sql_email) ''Opening the database with an recordset, with a SQL parameter setted previously
+    
+    If rs_email.EOF = False Then ''Check if is there at least one row in this SQL
+        rs_email.MoveLast  ''Move to the last row 
+        qtd_email = rs_email.RecordCount ''Get an integer value of how many rows exists in this Recordset
+        rs_email.MoveFirst ''/*Return to the first row, to start the loop from the beginning
+      
+        For i = 1 To qtd_email
+            Call MontarDashConsultor(rs_email("nome").Value, rs_email("email").Value)
+            rs_email.MoveNext
+        Next
+    End If
+    
+End Function
+
+
+
+Sub MontarDashConsultor(nome As String, email as string)
+   
+    Dim sql As String ''SQL Var
+    Dim db As dao.Database ''Create a database var (It's necessary to specify which database you will use, your current database or another database located in a another path)
+    Dim qdf As dao.QueryDef ''Query Definition var, this is used to generate a temporary QueryView in access
+    
+    Set db = CurrentDb ''Sepecifying my currentdb, it could be another database, example if you have a backend process 
+    
+    ''Where the model of my dashboard is located
+    Dim xlsxpath As String 
+    
+    ''Name of my new file mirrored in the previous model   
+    xlsxpath = CurrentProject.Path & "\Dashboard\Em produção\Dashboard Corretor_" & consultor & "_" & Format(DateSerial(Year(Now()), Month(Now()), Day(Now())), "dd_mm_yy") & ".xlsm"
+    
+    ''Copy the model file, and rename to the new name as declared above in xlsxpath var
+    FileCopy CurrentProject.Path & "\Modelo.xlsm", xlsxpath
+    
+    
+    
+    ''Querys that will be exported to the excel model file  
+
+
+    sql = "SELECT tbfull_pripag.CPF, tbdashanalitico.nProposta, tbdashanalitico.nApolice, tbdashanalitico.Segurado, tbdashanalitico.Produto, tbdashanalitico.[Cap Segurado], tbdashanalitico.[Periodicidade de Pagamento], tbdashanalitico.Prêmio, tbdashanalitico.[Forma de Pagamento],tbdashanalitico.[Dt Envio] ,tbdashanalitico.[Dt Protocolo], tbdashanalitico.[Dt Emissão], tbdashanalitico.[Dt Primeiro Pagamento], tbdashanalitico.[Dt Recusa], tbdashanalitico.[Dt Encerramento], tbdashanalitico.[Dt Cancelamento], tbdashanalitico.FxPagamento, tbdashanalitico.Inadimplência, tbdashanalitico.[Parcel Inadimplentes], tbdashanalitico.Status, tbdashanalitico.[Status detalhado], tbdashanalitico.Responsável " _
+    & "FROM tbfull_pripag RIGHT JOIN tbdashanalitico ON tbfull_pripag.Protocolo = tbdashanalitico.nProtocolo " _
+    & "WHERE tbdashanalitico.Consultor='" & nome & "';"
+    
+    Set qdf = cdb.CreateQueryDef("BaseCompleta", _
+            sql)
+    Set qdf = Nothing
+    DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, "BaseCompleta", xlsxpath, True
+    DoCmd.DeleteObject acQuery, "BaseCompleta"
+       
+    'BASE CADASTRO
+    sql = "SELECT * FROM tbcadastroconsultor WHERE consultorajustado='" & consultor & "'"
+       
+    Set qdf = cdb.CreateQueryDef("BaseCadastro", _
+            sql)
+    Set qdf = Nothing
+    DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, "BaseCadastro", xlsxpath, True
+    DoCmd.DeleteObject acQuery, "BaseCadastro"
+           
+    'PENDENCIA
+    sql = "SELECT tbdashanalitico.nProposta, tbdashanalitico.Segurado, tbdashanalitico.Prêmio,tbdashanalitico.[Dt Envio], tbdashanalitico.[Dt Protocolo], tbdashanalitico.Responsável, tbdashanalitico.Status, tbdashanalitico.[Status detalhado]" _
+    & " From tbdashanalitico" _
+    & " WHERE (((tbdashanalitico.Status)<>'risco aceito' And tbdashanalitico.Status<>'Em análise' And (tbdashanalitico.Status)<>'Emitido' And (tbdashanalitico.Status)<>'Apólice Inativa' And (tbdashanalitico.Status)<>'Apólice Ativa' And(tbdashanalitico.Status)<>'Emitido' And (tbdashanalitico.Status)<>'recusado' And (tbdashanalitico.Status)<>'encerrado') AND ((tbdashanalitico.Consultor)='" & consultor & "'));"
+    
+    Set qdf = cdb.CreateQueryDef("Pendentes", _
+            sql)
+    Set qdf = Nothing
+    DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, "Pendentes", xlsxpath, True, Range:="tbpendencia"
+    DoCmd.DeleteObject acQuery, "Pendentes"
+           
+    'EMISSÕES
+    sql = "SELECT tbdashanalitico.nApolice, tbdashanalitico.Segurado, tbdashanalitico.Prêmio, tbdashanalitico.[Dt Protocolo], tbdashanalitico.[Dt Emissão],DateSerial(Year([tbdashanalitico].[Dt Emissão]),Month([tbdashanalitico].[Dt Emissão]),1) AS [Mês Emissão],Int(([tbdashanalitico].[Dt Emissão]-[tbdashanalitico].[Dt Protocolo])) AS [Tempo até emissão]" _
+    & " From tbdashanalitico" _
+    & " WHERE (((tbdashanalitico.[Dt Emissão]) Is Not Null)  AND ((tbdashanalitico.Consultor)='" & consultor & "'));"
+    
+    Set qdf = cdb.CreateQueryDef("Emissoes", _
+            sql)
+    Set qdf = Nothing
+    DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, "Emissoes", xlsxpath, True, Range:="tbemissao"
+    DoCmd.DeleteObject acQuery, "Emissoes"
+           
+    'ENCERRAMENTOS
+    sql = "SELECT tbdashanalitico.nProposta, tbdashanalitico.Segurado, tbdashanalitico.Prêmio, tbdashanalitico.[Dt Protocolo],tbdashanalitico.[Dt Encerramento],tbdashanalitico.[Dt Recusa], tbdashanalitico.Status, tbdashanalitico.[Status detalhado]" _
+    & " From tbdashanalitico" _
+    & " WHERE (((tbdashanalitico.Status)='Recusado' Or (tbdashanalitico.Status)='Encerrado') AND ((tbdashanalitico.Consultor)='" & consultor & "'));"
+    
+    Set qdf = cdb.CreateQueryDef("Recusa_Encerramentos", _
+            sql)
+    Set qdf = Nothing
+    DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, "Recusa_Encerramentos", xlsxpath, True, Range:="tbrecusaencerra"
+    DoCmd.DeleteObject acQuery, "Recusa_Encerramentos"
+          
+    'INADIMPLÊNCIA
+    sql = "SELECT tbfull.Apólice, tbfull.[Nome Segurado] AS Segurado, tbfull.Prêmio, tbfull.[Forma Pagto],tbaceitacao.[FxPagamento], tbfull.[Vencimento Original], Int(Now()-[Vencimento Original]) AS [Dias Inadimplente Original], tbfull.[Vencimento] AS [Vencimento Prorrogado], Int(Now()-[Vencimento]) AS [Dias Inadimplente Prorrogado], tbfull.Parcela, tbfull.[Status Resumido],tbfull.[Status de Cobrança]" _
+    & " FROM TBACEITACAO RIGHT JOIN tbfull ON TBACEITACAO.nApolice = tbfull.Apólice" _
+    & " WHERE (((TBACEITACAO.consultor)='" & consultor & "') AND ((tbfull.Inadimplente)=1)) AND ((tbfull.[Estorno de Prêmio]=0));"
+    
+    Set qdf = cdb.CreateQueryDef("Inadimplência", _
+            sql)
+    Set qdf = Nothing
+    DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, "Inadimplência", xlsxpath, True, Range:="tbinadimplencia"
+    DoCmd.DeleteObject acQuery, "Inadimplência"
+           
+    'ATIVIDADE DIÁRIA
+    sql = "SELECT dMesAtiv,dAtiv,nLigR as Ligações, nAbA as Agendamentos,nAbR as [Abordagens Realizadas],nFer as Fechamentos,nPFe as [Propostas Fechadas], nRec as Recomendações FROM tb_respostas WHERE Consultor='" & consultor & "'"
+    
+    Set qdf = cdb.CreateQueryDef("AtividadeDiaria", _
+            sql)
+    Set qdf = Nothing
+    DoCmd.TransferSpreadsheet acExport, acSpreadsheetTypeExcel12Xml, "AtividadeDiaria", xlsxpath, True, Range:="AtividadeDiaria"
+    DoCmd.DeleteObject acQuery, "AtividadeDiaria"
+                    
+    
+    Set db = Nothing
+    
+    Dim xlObj As Object
+    
+    Set xlObj = CreateObject("excel.application")
+    xlObj.Workbooks.Open xlsxpath
+    With xlObj
+        .ActiveWorkbook.RefreshAll
+        .worksheets("pendentes").Select
+        .Columns("e:l").Select
+        .worksheets("emissoes").Select
+        .Columns("e:k").Select
+        .worksheets("inadimplência").Select
+        .Columns("e:q").Select
+        .worksheets("Recusa_Encerramentos").Select
+        .Columns("e:l").Select
+        .worksheets("Inicio").Select
+        .ActiveWorkbook.Save
+    End With
+    
+    xlObj.Quit
+    
+    Set xlObj = Nothing
+    
+    ''Call the outlook send email process, to attach the file
+    Call EnviarDashConsultor(nome, email)
+      
+End Sub
