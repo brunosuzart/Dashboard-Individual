@@ -1,9 +1,15 @@
+#Excel Dashboard
+
+<img src="https://media-exp1.licdn.com/media-proxy/ext?w=800&h=800&f=n&hash=Cv%2BbKufrMFmn9gJxfoY9yJLcOzY%3D&ora=1%2CaFBCTXdkRmpGL2lvQUFBPQ%2CxAVta5g-0R6jnhodx1Ey9KGTqAGj6E5DQJHUA3L0CHH05IbfPWjpKJPeL-Sh9kBHcShSjQAxKea1STO1Go68Ko3tKNgjjZbidcL5agYUbhl4j3lK6w">
+
+
+
 # Individual Dashboard - For Insurance industry
 #The file Modelo.xlsm is a spreadsheet model that I've create to solve a specific problem about knowledge of commercial information. This model is used to fullfill the entire broker's needs about information.
 
 #The file functions, is a module from Access VBA, that explain and show how you build individuals dashboard for specific persons (in my case is Insurance brokers) in an automated process mirrored in a sample file as I said above.
 
-# What you have to know
+# What do I have to know?
 
 I assume that you know how to specify a range name in excel or create a table with a specific name
 
